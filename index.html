@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Base de Datos - Sistema de Compras</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #fff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: linear-gradient(135deg, #c41e3a 0%, #8b0000 100%);
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(196, 30, 58, 0.3);
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .progress-bar {
+            background: #333;
+            border-radius: 10px;
+            height: 40px;
+            margin: 20px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #c41e3a 0%, #ff4057 100%);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .steps-container {
+            display: grid;
+            gap: 20px;
+        }
+
+        .step {
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 25px;
+            border-left: 5px solid #c41e3a;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+
+        .step.active {
+            border-left-color: #ff4057;
+            box-shadow: 0 6px 25px rgba(196, 30, 58, 0.4);
+        }
+
+        .step.completed {
+            border-left-color: #4CAF50;
+            opacity: 0.85;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .step-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+
+        .step-number {
+            background: #c41e3a;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .step.completed .step-number {
+            background: #4CAF50;
+        }
+
+        .step-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            background: #555;
+            color: #ccc;
+        }
+
+        .status-active {
+            background: #c41e3a;
+            color: #fff;
+        }
+
+        .status-completed {
+            background: #4CAF50;
+            color: #fff;
+        }
+
+        .table-designer {
+            background: #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .field-input {
+            display: grid;
+            grid-template-columns: 2fr 2fr 1fr 1fr auto;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        input, select {
+            padding: 10px;
+            border: 2px solid #555;
+            border-radius: 6px;
+            background: #2a2a2a;
+            color: #fff;
+            font-size: 0.95em;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #c41e3a;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            font-size: 0.95em;
+        }
+
+        .btn-add {
+            background: #c41e3a;
+            color: white;
+        }
+
+        .btn-add:hover {
+            background: #ff4057;
+            transform: translateY(-2px);
+        }
+
+        .btn-remove {
+            background: #555;
+            color: white;
+            padding: 8px 12px;
+        }
+
+        .btn-remove:hover {
+            background: #777;
+        }
+
+        .btn-next {
+            background: linear-gradient(135deg, #c41e3a 0%, #8b0000 100%);
+            color: white;
+            padding: 12px 30px;
+            font-size: 1.1em;
+            margin-top: 15px;
+        }
+
+        .btn-next:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(196, 30, 58, 0.4);
+        }
+
+        .btn-next:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .fields-list {
+            margin-top: 15px;
+        }
+
+        .field-item {
+            background: #2a2a2a;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            display: grid;
+            grid-template-columns: 2fr 2fr 1fr 1fr auto;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .field-item span {
+            padding: 6px 10px;
+            background: #1a1a1a;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .badge-pk {
+            background: #ff9800;
+            color: #000;
+        }
+
+        .badge-fk {
+            background: #2196F3;
+            color: #fff;
+        }
+
+        .data-entry {
+            background: #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .data-item {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 3px solid #c41e3a;
+        }
+
+        .data-item h4 {
+            color: #c41e3a;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .data-item p {
+            font-size: 1em;
+            color: #fff;
+        }
+
+        .relationship-diagram {
+            background: #333;
+            border-radius: 8px;
+            padding: 30px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .diagram-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin: 20px 0;
+        }
+
+        .table-box {
+            background: #2a2a2a;
+            border: 3px solid #c41e3a;
+            border-radius: 8px;
+            padding: 20px;
+            min-width: 200px;
+        }
+
+        .table-box h3 {
+            color: #c41e3a;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .table-box ul {
+            list-style: none;
+            text-align: left;
+        }
+
+        .table-box li {
+            padding: 5px 0;
+            font-size: 0.9em;
+        }
+
+        .arrow {
+            font-size: 3em;
+            color: #c41e3a;
+            font-weight: bold;
+        }
+
+        .relationship-label {
+            background: #c41e3a;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .summary-section {
+            background: #333;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 15px 0;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .summary-card {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            border-top: 4px solid #c41e3a;
+        }
+
+        .summary-card h3 {
+            color: #c41e3a;
+            margin-bottom: 15px;
+        }
+
+        .summary-card .number {
+            font-size: 3em;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .alert {
+            background: #ff9800;
+            color: #000;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        .success {
+            background: #4CAF50;
+            color: #fff;
+        }
+
+        @media (max-width: 768px) {
+            .field-input, .field-item {
+                grid-template-columns: 1fr;
+            }
+
+            .diagram-container {
+                flex-direction: column;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🗄️ Simulador de Base de Datos</h1>
+            <p>Sistema de Gestión de Compras - Productos y Clientes</p>
+            <p style="font-size: 0.9em; margin-top: 10px; opacity: 0.9;">Centro Educativo Nuestra Sra. De la Altagracia</p>
+        </header>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar">0%</div>
+        </div>
+
+        <div class="steps-container" id="stepsContainer">
+            <!-- Los pasos se generarán dinámicamente -->
+        </div>
+    </div>
+
+    <script>
+        // Estado de la aplicación
+        const appState = {
+            currentStep: 0,
+            tables: {
+                productos: [],
+                clientes: [],
+                compras: []
+            },
+            dataEntries: {
+                productos: [],
+                clientes: [],
+                compras: []
+            }
+        };
+
+        // Definición de pasos
+        const steps = [
+            {
+                title: "Diseñar Tabla PRODUCTOS",
+                description: "Crea la tabla Productos con todos sus campos requeridos",
+                requiredFields: [
+                    { name: "ID_Producto", constraint: "primary" },
+                    { name: "Código_Producto", constraint: "none" },
+                    { name: "Nombre_Producto", constraint: "none" },
+                    { name: "Descripción", constraint: "none" },
+                    { name: "Precio_Unitario", constraint: "none" },
+                    { name: "Unidad_Medida", constraint: "none" },
+                    { name: "Stock_Disponible", constraint: "none" },
+                    { name: "Categoría", constraint: "none" },
+                    { name: "Proveedor", constraint: "none" }
+                ],
+                validate: () => validateTable('productos', steps[0].requiredFields)
+            },
+            {
+                title: "Diseñar Tabla CLIENTES",
+                description: "Crea la tabla Clientes con todos sus campos requeridos",
+                requiredFields: [
+                    { name: "ID_Cliente", constraint: "primary" },
+                    { name: "Código_Cliente", constraint: "none" },
+                    { name: "Nombre_Completo", constraint: "none" },
+                    { name: "Empresa", constraint: "none" },
+                    { name: "Email", constraint: "none" },
+                    { name: "Teléfono", constraint: "none" },
+                    { name: "Dirección", constraint: "none" },
+                    { name: "Ciudad", constraint: "none" },
+                    { name: "Tipo_Cliente", constraint: "none" }
+                ],
+                validate: () => validateTable('clientes', steps[1].requiredFields)
+            },
+            {
+                title: "Diseñar Tabla COMPRAS (Intermedia)",
+                description: "Crea la tabla intermedia Compras con claves foráneas",
+                requiredFields: [
+                    { name: "ID_Compra", constraint: "primary" },
+                    { name: "ID_Cliente", constraint: "foreign" },
+                    { name: "ID_Producto", constraint: "foreign" },
+                    { name: "Fecha_Compra", constraint: "none" },
+                    { name: "Cantidad", constraint: "none" },
+                    { name: "Precio_Total", constraint: "none" },
+                    { name: "Estado", constraint: "none" }
+                ],
+                validate: () => validateTable('compras', steps[2].requiredFields)
+            },
+            {
+                title: "Establecer Relaciones",
+                description: "Define las relaciones entre las tablas (uno a muchos)",
+                type: "relationship",
+                validate: () => true
+            },
+            {
+                title: "Insertar Productos",
+                description: "Agrega 2 productos de ejemplo",
+                type: "data",
+                tableName: "productos",
+                requiredCount: 2,
+                validate: () => appState.dataEntries.productos.length >= 2
+            },
+            {
+                title: "Insertar Clientes",
+                description: "Agrega 2 clientes de ejemplo",
+                type: "data",
+                tableName: "clientes",
+                requiredCount: 2,
+                validate: () => appState.dataEntries.clientes.length >= 2
+            },
+            {
+                title: "Registrar Compras",
+                description: "Registra al menos 2 compras",
+                type: "data",
+                tableName: "compras",
+                requiredCount: 2,
+                validate: () => appState.dataEntries.compras.length >= 2
+            },
+            {
+                title: "Resumen Final",
+                description: "Revisa tu base de datos completada",
+                type: "summary",
+                validate: () => true
+            }
+        ];
+
+        // Inicializar aplicación
+        function init() {
+            renderSteps();
+            updateProgress();
+        }
+
+        // Renderizar pasos
+        function renderSteps() {
+            const container = document.getElementById('stepsContainer');
+            container.innerHTML = '';
+
+            steps.forEach((step, index) => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = `step ${index === appState.currentStep ? 'active' : ''} ${index < appState.currentStep ? 'completed' : ''}`;
+                stepDiv.innerHTML = `
+                    <div class="step-header">
+                        <div class="step-title">
+                            <div class="step-number">${index + 1}</div>
+                            <div>
+                                <h2>${step.title}</h2>
+                                <p style="color: #ccc; margin-top: 5px;">${step.description}</p>
+                            </div>
+                        </div>
+                        <div class="step-status ${index < appState.currentStep ? 'status-completed' : index === appState.currentStep ? 'status-active' : 'status-pending'}">
+                            ${index < appState.currentStep ? '✓ Completado' : index === appState.currentStep ? 'En Progreso' : 'Pendiente'}
+                        </div>
+                    </div>
+                    <div id="stepContent${index}"></div>
+                `;
+                container.appendChild(stepDiv);
+
+                if (index === appState.currentStep) {
+                    renderStepContent(index);
+                }
+            });
+        }
+
+        // Renderizar contenido del paso actual
+        function renderStepContent(stepIndex) {
+            const step = steps[stepIndex];
+            const contentDiv = document.getElementById(`stepContent${stepIndex}`);
+
+            if (step.type === 'relationship') {
+                renderRelationshipStep(contentDiv);
+            } else if (step.type === 'data') {
+                renderDataStep(contentDiv, step);
+            } else if (step.type === 'summary') {
+                renderSummaryStep(contentDiv);
+            } else {
+                renderTableDesignStep(contentDiv, step, stepIndex);
+            }
+        }
+
+        // Renderizar paso de diseño de tabla
+        function renderTableDesignStep(container, step, stepIndex) {
+            const tableName = stepIndex === 0 ? 'productos' : stepIndex === 1 ? 'clientes' : 'compras';
+            
+            container.innerHTML = `
+                <div class="table-designer">
+                    <h3 style="margin-bottom: 20px; color: #c41e3a;">Diseño de la Tabla</h3>
+                    <div class="field-input" style="font-weight: bold; color: #c41e3a;">
+                        <span>Seleccionar Campo</span>
+                        <span>Tipo de Dato</span>
+                        <span>Restricción</span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div id="fieldInputs${stepIndex}">
+                        <div class="field-input">
+                            <select id="fieldName${stepIndex}" style="background: #2a2a2a; color: #fff;">
+                                <option value="">-- Selecciona un campo --</option>
+                            </select>
+                            <select id="fieldType${stepIndex}">
+                                <option value="autonumerico">Autonumérico</option>
+                                <option value="texto-corto">Texto Corto</option>
+                                <option value="texto-largo">Texto Largo (Memo)</option>
+                                <option value="numero">Número</option>
+                                <option value="moneda">Moneda</option>
+                                <option value="fecha">Fecha</option>
+                                <option value="fecha-hora">Fecha/Hora</option>
+                                <option value="si-no">Sí/No</option>
+                                <option value="objeto-ole">Objeto OLE</option>
+                                <option value="hipervinculo">Hipervínculo</option>
+                            </select>
+                            <select id="fieldConstraint${stepIndex}">
+                                <option value="none">Ninguna</option>
+                                <option value="primary">Clave Primaria</option>
+                                <option value="foreign">Clave Foránea</option>
+                            </select>
+                            <button class="btn-add" onclick="addField(${stepIndex}, '${tableName}')">+ Agregar</button>
+                        </div>
+                    </div>
+                    <div class="fields-list" id="fieldsList${stepIndex}"></div>
+                </div>
+                <div class="alert" id="alertBox${stepIndex}">
+                </div>
+                <button class="btn-next" onclick="nextStep()" id="btnNext${stepIndex}">Continuar al Siguiente Paso →</button>
+            `;
+
+            updateAvailableFields(stepIndex, step, tableName);
+            renderFieldsList(stepIndex, tableName);
+        }
+
+        // Actualizar campos disponibles
+        function updateAvailableFields(stepIndex, step, tableName) {
+            const select = document.getElementById(`fieldName${stepIndex}`);
+            const alertBox = document.getElementById(`alertBox${stepIndex}`);
+            const addedFields = appState.tables[tableName].map(f => f.name);
+            
+            // Obtener campos pendientes
+            const pendingFields = step.requiredFields.filter(f => !addedFields.includes(f.name));
+            
+            // Actualizar selector
+            select.innerHTML = '<option value="">-- Selecciona un campo --</option>' +
+                pendingFields.map(f => {
+                    const constraintText = f.constraint === 'primary' ? ' (PK)' : 
+                                         f.constraint === 'foreign' ? ' (FK)' : '';
+                    return `<option value="${f.name}" data-constraint="${f.constraint}">${f.name}${constraintText}</option>`;
+                }).join('');
+            
+            // Actualizar cuadro amarillo
+            if (pendingFields.length === 0) {
+                alertBox.innerHTML = `
+                    <div class="alert success">
+                        ✅ <strong>¡Excelente!</strong> Has agregado todos los campos requeridos. Puedes continuar al siguiente paso.
+                    </div>
+                `;
+            } else {
+                alertBox.innerHTML = `
+                    <strong>📋 Campos Pendientes por Agregar (${pendingFields.length} de ${step.requiredFields.length}):</strong>
+                    <div style="margin-top: 10px; display: grid; gap: 8px;">
+                        ${pendingFields.map(f => `
+                            <div style="background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                                <span><strong>${f.name}</strong></span>
+                                <span style="font-size: 0.9em;">
+                                    ${f.constraint === 'primary' ? '<span class="badge badge-pk" style="margin-left: 10px;">Clave Primaria (PK)</span>' : 
+                                      f.constraint === 'foreign' ? '<span class="badge badge-fk" style="margin-left: 10px;">Clave Foránea (FK)</span>' : 
+                                      '<span style="opacity: 0.7; margin-left: 10px;">Sin restricción</span>'}
+                                </span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <p style="margin-top: 15px; font-size: 0.95em;">
+                        ℹ️ Selecciona un campo de la lista, elige su tipo de dato y restricción, luego presiona "Agregar".
+                    </p>
+                `;
+            }
+            
+            // Auto-seleccionar la restricción cuando se elige un campo
+            select.onchange = function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const constraint = selectedOption.getAttribute('data-constraint');
+                if (constraint) {
+                    document.getElementById(`fieldConstraint${stepIndex}`).value = constraint;
+                }
+            };
+        }
+
+        // Agregar campo a tabla
+        // Agregar campo a tabla
+        function addField(stepIndex, tableName) {
+            const nameSelect = document.getElementById(`fieldName${stepIndex}`);
+            const typeSelect = document.getElementById(`fieldType${stepIndex}`);
+            const constraintSelect = document.getElementById(`fieldConstraint${stepIndex}`);
+
+            const fieldName = nameSelect.value.trim();
+            const fieldType = typeSelect.value;
+            const fieldConstraint = constraintSelect.value;
+
+            if (!fieldName) {
+                alert('Por favor selecciona un campo de la lista');
+                return;
+            }
+
+            // Verificar si ya existe
+            if (appState.tables[tableName].some(f => f.name === fieldName)) {
+                alert('Este campo ya fue agregado');
+                return;
+            }
+
+            appState.tables[tableName].push({
+                name: fieldName,
+                type: fieldType,
+                constraint: fieldConstraint
+            });
+
+            // Resetear selectores
+            nameSelect.value = '';
+            typeSelect.value = 'autonumerico';
+            constraintSelect.value = 'none';
+            
+            renderFieldsList(stepIndex, tableName);
+            
+            // Actualizar campos disponibles
+            const step = steps[stepIndex];
+            updateAvailableFields(stepIndex, step, tableName);
+        }
+
+        // Renderizar lista de campos
+        function renderFieldsList(stepIndex, tableName) {
+            const list = document.getElementById(`fieldsList${stepIndex}`);
+            const fields = appState.tables[tableName];
+
+            if (fields.length === 0) {
+                list.innerHTML = '<p style="color: #999; padding: 20px; text-align: center;">No hay campos agregados aún</p>';
+                return;
+            }
+
+            // Mapeo de tipos de datos para mostrar
+            const typeLabels = {
+                'autonumerico': 'Autonumérico',
+                'texto-corto': 'Texto Corto',
+                'texto-largo': 'Texto Largo',
+                'numero': 'Número',
+                'moneda': 'Moneda',
+                'fecha': 'Fecha',
+                'fecha-hora': 'Fecha/Hora',
+                'si-no': 'Sí/No',
+                'objeto-ole': 'Objeto OLE',
+                'hipervinculo': 'Hipervínculo'
+            };
+
+            list.innerHTML = fields.map((field, index) => `
+                <div class="field-item">
+                    <span><strong>${field.name}</strong></span>
+                    <span>${typeLabels[field.type] || field.type}</span>
+                    <span>
+                        ${field.constraint === 'primary' ? '<span class="badge badge-pk">PK</span>' : 
+                          field.constraint === 'foreign' ? '<span class="badge badge-fk">FK</span>' : 
+                          'Ninguna'}
+                    </span>
+                    <span></span>
+                    <button class="btn-remove" onclick="removeField('${tableName}', ${index})">✕</button>
+                </div>
+            `).join('');
+        }
+
+        // Eliminar campo
+        function removeField(tableName, index) {
+            appState.tables[tableName].splice(index, 1);
+            const stepIndex = tableName === 'productos' ? 0 : tableName === 'clientes' ? 1 : 2;
+            renderFieldsList(stepIndex, tableName);
+            
+            // Actualizar campos disponibles
+            const step = steps[stepIndex];
+            updateAvailableFields(stepIndex, step, tableName);
+        }
+
+        // Validar tabla
+        function validateTable(tableName, requiredFields) {
+            const fields = appState.tables[tableName];
+            
+            // Verificar que existan todos los campos requeridos por nombre y restricción
+            const isValid = requiredFields.every(req => {
+                return fields.some(field => 
+                    field.name.trim() === req.name.trim() && 
+                    field.constraint === req.constraint
+                );
+            });
+            
+            // Debug: mostrar en consola qué falta
+            if (!isValid) {
+                console.log('Tabla:', tableName);
+                console.log('Campos actuales:', fields);
+                console.log('Campos requeridos:', requiredFields);
+                
+                requiredFields.forEach(req => {
+                    const exists = fields.some(field => 
+                        field.name.trim() === req.name.trim() && 
+                        field.constraint === req.constraint
+                    );
+                    if (!exists) {
+                        console.log('Falta:', req.name, 'con restricción:', req.constraint);
+                    }
+                });
+            }
+            
+            return isValid;
+        }
+
+        // Renderizar paso de relaciones
+        function renderRelationshipStep(container) {
+            container.innerHTML = `
+                <div class="relationship-diagram">
+                    <h3 style="margin-bottom: 30px; font-size: 1.5em;">Diagrama de Relaciones</h3>
+                    
+                    <div class="diagram-container">
+                        <div class="table-box">
+                            <h3>CLIENTES</h3>
+                            <ul>
+                                <li>🔑 <strong>ID_Cliente (PK)</strong></li>
+                                <li>Código_Cliente</li>
+                                <li>Nombre_Completo</li>
+                                <li>Empresa</li>
+                                <li>...</li>
+                            </ul>
+                        </div>
+
+                        <div style="text-align: center;">
+                            <div class="arrow">→</div>
+                            <div class="relationship-label">Uno a Muchos</div>
+                        </div>
+
+                        <div class="table-box">
+                            <h3>COMPRAS</h3>
+                            <ul>
+                                <li>🔑 <strong>ID_Compra (PK)</strong></li>
+                                <li>🔗 <strong>ID_Cliente (FK)</strong></li>
+                                <li>🔗 <strong>ID_Producto (FK)</strong></li>
+                                <li>Fecha_Compra</li>
+                                <li>...</li>
+                            </ul>
+                        </div>
+
+                        <div style="text-align: center;">
+                            <div class="arrow">←</div>
+                            <div class="relationship-label">Uno a Muchos</div>
+                        </div>
+
+                        <div class="table-box">
+                            <h3>PRODUCTOS</h3>
+                            <ul>
+                                <li>🔑 <strong>ID_Producto (PK)</strong></li>
+                                <li>Código_Producto</li>
+                                <li>Nombre_Producto</li>
+                                <li>Precio_Unitario</li>
+                                <li>...</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 30px; padding: 20px; background: #2a2a2a; border-radius: 8px;">
+                        <h4 style="color: #c41e3a; margin-bottom: 15px;">📋 Explicación de las Relaciones:</h4>
+                        <ul style="text-align: left; line-height: 2;">
+                            <li><strong>Clientes → Compras:</strong> Un cliente puede realizar muchas compras (relación 1:N)</li>
+                            <li><strong>Productos → Compras:</strong> Un producto puede estar en muchas compras (relación 1:N)</li>
+                            <li><strong>Tabla Intermedia:</strong> COMPRAS conecta Clientes y Productos mediante claves foráneas</li>
+                        </ul>
+                    </div>
+                </div>
+                <button class="btn-next" onclick="nextStep()">Continuar al Siguiente Paso →</button>
+            `;
+        }
+
+        // Renderizar paso de entrada de datos
+        function renderDataStep(container, step) {
+            const tableName = step.tableName;
+            const tableFields = appState.tables[tableName];
+
+            container.innerHTML = `
+                <div class="data-entry">
+                    <h3 style="margin-bottom: 20px; color: #c41e3a;">Ingreso de Datos - ${step.title}</h3>
+                    <p style="color: #ccc; margin-bottom: 20px;">Debes agregar al menos ${step.requiredCount} registros</p>
+                    
+                    <div id="dataForm${tableName}" style="background: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        ${tableFields.map(field => `
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px; color: #c41e3a; font-weight: bold;">
+                                    ${field.name}
+                                    ${field.constraint === 'primary' ? '<span class="badge badge-pk">PK</span>' : ''}
+                                    ${field.constraint === 'foreign' ? '<span class="badge badge-fk">FK</span>' : ''}
+                                </label>
+                                ${renderDataInput(field, tableName)}
+                            </div>
+                        `).join('')}
+                        <button class="btn-add" onclick="addDataEntry('${tableName}', ${step.requiredCount})">+ Agregar Registro</button>
+                    </div>
+
+                    <div id="dataList${tableName}"></div>
+                </div>
+                <div class="alert ${appState.dataEntries[tableName].length >= step.requiredCount ? 'success' : ''}">
+                    <strong>Progreso:</strong> ${appState.dataEntries[tableName].length} de ${step.requiredCount} registros completados
+                </div>
+                <button class="btn-next" onclick="nextStep()">Continuar al Siguiente Paso →</button>
+            `;
+
+            renderDataList(tableName);
+        }
+
+        // Renderizar input según tipo de campo
+        function renderDataInput(field, tableName) {
+            const id = `input_${tableName}_${field.name}`;
+            
+            if (field.constraint === 'foreign') {
+                // Para claves foráneas, mostrar selector
+                const refTable = field.name.includes('Cliente') ? 'clientes' : 'productos';
+                const refData = appState.dataEntries[refTable];
+                const refIdField = refTable === 'clientes' ? 'ID_Cliente' : 'ID_Producto';
+                const refNameField = refTable === 'clientes' ? 'Nombre_Completo' : 'Nombre_Producto';
+                
+                if (refData.length === 0) {
+                    return `<p style="color: #ff9800; padding: 10px; background: rgba(255, 152, 0, 0.1); border-radius: 4px;">
+                        ⚠️ Primero debes agregar datos en la tabla ${refTable.toUpperCase()}
+                    </p>`;
+                }
+                
+                // Para ID_Producto en compras, agregar evento onchange
+                const onchangeAttr = (tableName === 'compras' && field.name === 'ID_Producto') ? 
+                    `onchange="calculatePrecioTotal('${tableName}')"` : '';
+                
+                return `
+                    <select id="${id}" style="width: 100%;" ${onchangeAttr}>
+                        <option value="">Seleccionar...</option>
+                        ${refData.map(item => `
+                            <option value="${item[refIdField]}" data-precio="${item.Precio_Unitario || 0}">${item[refIdField]} - ${item[refNameField]}</option>
+                        `).join('')}
+                    </select>
+                `;
+            }
+            
+            // Para Precio_Total en compras, hacerlo readonly
+            if (tableName === 'compras' && field.name === 'Precio_Total') {
+                return `<input type="number" id="${id}" step="0.01" style="width: 100%; background: #1a1a1a; cursor: not-allowed;" readonly placeholder="Se calculará automáticamente">`;
+            }
+            
+            // Para Cantidad en compras, agregar evento onchange
+            if (tableName === 'compras' && field.name === 'Cantidad') {
+                return `<input type="number" id="${id}" step="1" min="1" style="width: 100%;" onchange="calculatePrecioTotal('${tableName}')" oninput="calculatePrecioTotal('${tableName}')">`;
+            }
+            
+            // Según el tipo de dato
+            if (field.type === 'fecha' || field.type === 'fecha-hora') {
+                return field.type === 'fecha-hora' ? 
+                    `<input type="datetime-local" id="${id}" style="width: 100%;">` :
+                    `<input type="date" id="${id}" style="width: 100%;">`;
+            }
+            
+            if (field.type === 'numero' || field.type === 'autonumerico' || field.type === 'moneda') {
+                return `<input type="number" id="${id}" step="0.01" style="width: 100%;">`;
+            }
+            
+            if (field.type === 'si-no') {
+                return `
+                    <select id="${id}" style="width: 100%;">
+                        <option value="">Seleccionar...</option>
+                        <option value="Sí">Sí</option>
+                        <option value="No">No</option>
+                    </select>
+                `;
+            }
+            
+            // Para Tipo_Cliente, ofrecer opciones
+            if (field.name === 'Tipo_Cliente') {
+                return `
+                    <select id="${id}" style="width: 100%;">
+                        <option value="">Seleccionar...</option>
+                        <option value="Mayorista">Mayorista</option>
+                        <option value="Minorista">Minorista</option>
+                    </select>
+                `;
+            }
+            
+            // Para Estado, ofrecer opciones
+            if (field.name === 'Estado') {
+                return `
+                    <select id="${id}" style="width: 100%;">
+                        <option value="">Seleccionar...</option>
+                        <option value="Pendiente">Pendiente</option>
+                        <option value="Procesando">Procesando</option>
+                        <option value="Completada">Completada</option>
+                        <option value="Cancelada">Cancelada</option>
+                    </select>
+                `;
+            }
+            
+            // Texto largo
+            if (field.type === 'texto-largo') {
+                return `<textarea id="${id}" rows="3" style="width: 100%; resize: vertical;"></textarea>`;
+            }
+            
+            // Por defecto, texto
+            return `<input type="text" id="${id}" style="width: 100%;">`;
+        }
+
+        // Calcular precio total automáticamente
+        function calculatePrecioTotal(tableName) {
+            if (tableName !== 'compras') return;
+            
+            const productoSelect = document.getElementById('input_compras_ID_Producto');
+            const cantidadInput = document.getElementById('input_compras_Cantidad');
+            const precioTotalInput = document.getElementById('input_compras_Precio_Total');
+            
+            if (!productoSelect || !cantidadInput || !precioTotalInput) return;
+            
+            const selectedOption = productoSelect.options[productoSelect.selectedIndex];
+            const precioUnitario = parseFloat(selectedOption.getAttribute('data-precio')) || 0;
+            const cantidad = parseFloat(cantidadInput.value) || 0;
+            
+            if (precioUnitario > 0 && cantidad > 0) {
+                const precioTotal = precioUnitario * cantidad;
+                precioTotalInput.value = precioTotal.toFixed(2);
+            } else {
+                precioTotalInput.value = '';
+            }
+        }
+
+        // Agregar registro de datos
+        function addDataEntry(tableName, requiredCount) {
+            const tableFields = appState.tables[tableName];
+            const newEntry = {};
+
+            // Verificar si hay campos con claves foráneas que requieren datos previos
+            if (tableName === 'compras') {
+                if (appState.dataEntries.productos.length === 0) {
+                    alert('⚠️ Primero debes agregar productos antes de registrar compras');
+                    return;
+                }
+                if (appState.dataEntries.clientes.length === 0) {
+                    alert('⚠️ Primero debes agregar clientes antes de registrar compras');
+                    return;
+                }
+            }
+
+            // Recopilar datos del formulario
+            for (const field of tableFields) {
+                const inputId = `input_${tableName}_${field.name}`;
+                const input = document.getElementById(inputId);
+                
+                if (!input) continue;
+                
+                const value = input.tagName === 'TEXTAREA' ? input.value.trim() : input.value.trim();
+
+                // Para Precio_Total en compras, permitir que esté vacío si se calculó
+                if (tableName === 'compras' && field.name === 'Precio_Total') {
+                    if (!value) {
+                        alert('⚠️ El Precio Total no se ha calculado. Verifica que hayas seleccionado un producto y una cantidad.');
+                        return;
+                    }
+                    newEntry[field.name] = parseFloat(value);
+                    continue;
+                }
+
+                if (!value) {
+                    alert(`Por favor completa el campo: ${field.name}`);
+                    return;
+                }
+
+                // Convertir según tipo
+                if (field.type === 'numero' || field.type === 'autonumerico' || field.type === 'moneda') {
+                    newEntry[field.name] = parseFloat(value);
+                } else {
+                    newEntry[field.name] = value;
+                }
+            }
+
+            // Validar ID único
+            const idField = tableFields.find(f => f.constraint === 'primary').name;
+            if (appState.dataEntries[tableName].some(e => e[idField] === newEntry[idField])) {
+                alert('Ya existe un registro con ese ID');
+                return;
+            }
+
+            appState.dataEntries[tableName].push(newEntry);
+
+            // Limpiar formulario
+            for (const field of tableFields) {
+                const inputId = `input_${tableName}_${field.name}`;
+                const input = document.getElementById(inputId);
+                if (input) {
+                    input.value = '';
+                }
+            }
+
+            renderDataList(tableName);
+            
+            // Actualizar contador
+            const alert = document.querySelector('.alert');
+            if (alert) {
+                alert.className = `alert ${appState.dataEntries[tableName].length >= requiredCount ? 'success' : ''}`;
+                alert.innerHTML = `<strong>Progreso:</strong> ${appState.dataEntries[tableName].length} de ${requiredCount} registros completados`;
+            }
+        }
+
+        // Renderizar lista de datos
+        function renderDataList(tableName) {
+            const list = document.getElementById(`dataList${tableName}`);
+            const data = appState.dataEntries[tableName];
+
+            if (data.length === 0) {
+                list.innerHTML = '<p style="color: #999; padding: 20px; text-align: center;">No hay registros agregados aún</p>';
+                return;
+            }
+
+            list.innerHTML = `
+                <h4 style="color: #c41e3a; margin: 20px 0;">Registros Guardados (${data.length})</h4>
+                ${data.map((entry, index) => `
+                    <div class="data-grid" style="margin-bottom: 15px; padding: 15px; background: #2a2a2a; border-radius: 8px;">
+                        ${Object.entries(entry).map(([key, value]) => `
+                            <div class="data-item">
+                                <h4>${key}</h4>
+                                <p>${value}</p>
+                            </div>
+                        `).join('')}
+                        <div style="grid-column: 1 / -1;">
+                            <button class="btn-remove" onclick="removeDataEntry('${tableName}', ${index})">Eliminar Registro</button>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        // Eliminar registro de datos
+        function removeDataEntry(tableName, index) {
+            if (confirm('¿Estás seguro de eliminar este registro?')) {
+                appState.dataEntries[tableName].splice(index, 1);
+                renderDataList(tableName);
+                
+                // Actualizar contador
+                const step = steps.find(s => s.tableName === tableName);
+                const alert = document.querySelector('.alert');
+                if (alert && step) {
+                    alert.className = `alert ${appState.dataEntries[tableName].length >= step.requiredCount ? 'success' : ''}`;
+                    alert.innerHTML = `<strong>Progreso:</strong> ${appState.dataEntries[tableName].length} de ${step.requiredCount} registros completados`;
+                }
+            }
+        }
+
+        // Renderizar resumen final
+        function renderSummaryStep(container) {
+            container.innerHTML = `
+                <div class="summary-section">
+                    <h3 style="color: #c41e3a; font-size: 1.8em; margin-bottom: 25px; text-align: center;">
+                        🎉 ¡Base de Datos Completada!
+                    </h3>
+                    
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <h3>📊 Tablas Creadas</h3>
+                            <div class="number">3</div>
+                            <p style="color: #ccc; margin-top: 10px;">Productos, Clientes, Compras</p>
+                        </div>
+                        
+                        <div class="summary-card">
+                            <h3>🏷️ Productos Registrados</h3>
+                            <div class="number">${appState.dataEntries.productos.length}</div>
+                            <p style="color: #ccc; margin-top: 10px;">Productos en catálogo</p>
+                        </div>
+                        
+                        <div class="summary-card">
+                            <h3>👥 Clientes Registrados</h3>
+                            <div class="number">${appState.dataEntries.clientes.length}</div>
+                            <p style="color: #ccc; margin-top: 10px;">Clientes en base de datos</p>
+                        </div>
+                        
+                        <div class="summary-card">
+                            <h3>🛒 Compras Registradas</h3>
+                            <div class="number">${appState.dataEntries.compras.length}</div>
+                            <p style="color: #ccc; margin-top: 10px;">Transacciones completadas</p>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 30px; padding: 25px; background: #2a2a2a; border-radius: 8px;">
+                        <h3 style="color: #c41e3a; margin-bottom: 20px;">📋 Estructura de la Base de Datos</h3>
+                        
+                        <div style="margin-bottom: 25px;">
+                            <h4 style="color: #fff; margin-bottom: 10px;">Tabla PRODUCTOS (${appState.tables.productos.length} campos)</h4>
+                            <div style="color: #ccc; line-height: 1.8;">
+                                ${appState.tables.productos.map(f => `
+                                    <span style="display: inline-block; margin: 5px; padding: 5px 10px; background: #1a1a1a; border-radius: 4px;">
+                                        ${f.name} 
+                                        ${f.constraint === 'primary' ? '<span class="badge badge-pk">PK</span>' : ''}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 25px;">
+                            <h4 style="color: #fff; margin-bottom: 10px;">Tabla CLIENTES (${appState.tables.clientes.length} campos)</h4>
+                            <div style="color: #ccc; line-height: 1.8;">
+                                ${appState.tables.clientes.map(f => `
+                                    <span style="display: inline-block; margin: 5px; padding: 5px 10px; background: #1a1a1a; border-radius: 4px;">
+                                        ${f.name}
+                                        ${f.constraint === 'primary' ? '<span class="badge badge-pk">PK</span>' : ''}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 25px;">
+                            <h4 style="color: #fff; margin-bottom: 10px;">Tabla COMPRAS (${appState.tables.compras.length} campos)</h4>
+                            <div style="color: #ccc; line-height: 1.8;">
+                                ${appState.tables.compras.map(f => `
+                                    <span style="display: inline-block; margin: 5px; padding: 5px 10px; background: #1a1a1a; border-radius: 4px;">
+                                        ${f.name}
+                                        ${f.constraint === 'primary' ? '<span class="badge badge-pk">PK</span>' : 
+                                          f.constraint === 'foreign' ? '<span class="badge badge-fk">FK</span>' : ''}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert success" style="margin-top: 25px; text-align: center; font-size: 1.1em;">
+                        ✅ Has completado exitosamente el diseño e implementación de la base de datos del sistema de compras
+                    </div>
+                </div>
+            `;
+        }
+
+        // Siguiente paso
+        function nextStep() {
+            const currentStepObj = steps[appState.currentStep];
+            
+            // Validar paso actual
+            if (!currentStepObj.validate()) {
+                // Mensaje específico según el tipo de paso
+                if (currentStepObj.type === 'data') {
+                    alert(`⚠️ Necesitas agregar ${currentStepObj.requiredCount} registros. Actualmente tienes ${appState.dataEntries[currentStepObj.tableName].length}.`);
+                } else if (currentStepObj.requiredFields) {
+                    // Verificar qué campos faltan
+                    const tableName = appState.currentStep === 0 ? 'productos' : appState.currentStep === 1 ? 'clientes' : 'compras';
+                    const missingFields = [];
+                    
+                    currentStepObj.requiredFields.forEach(req => {
+                        const exists = appState.tables[tableName].some(field => 
+                            field.name.trim() === req.name.trim() && 
+                            field.constraint === req.constraint
+                        );
+                        if (!exists) {
+                            missingFields.push(`${req.name} ${req.constraint === 'primary' ? '(PK)' : req.constraint === 'foreign' ? '(FK)' : ''}`);
+                        }
+                    });
+                    
+                    if (missingFields.length > 0) {
+                        alert(`⚠️ Te faltan los siguientes campos:\n\n${missingFields.join('\n')}\n\nRevisa el cuadro amarillo para ver todos los campos requeridos.`);
+                    } else {
+                        alert('⚠️ Por favor completa todos los requisitos del paso actual antes de continuar');
+                    }
+                } else {
+                    alert('⚠️ Por favor completa todos los requisitos del paso actual antes de continuar');
+                }
+                return;
+            }
+
+            if (appState.currentStep < steps.length - 1) {
+                appState.currentStep++;
+                renderSteps();
+                updateProgress();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // Actualizar barra de progreso
+        function updateProgress() {
+            const progress = ((appState.currentStep + 1) / steps.length) * 100;
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = progress + '%';
+            progressBar.textContent = Math.round(progress) + '%';
+        }
+
+        // Iniciar aplicación
+        init();
+    </script>
+</body>
+</html>
