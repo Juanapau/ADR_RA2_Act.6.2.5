@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -392,6 +393,33 @@
             color: #fff;
         }
 
+        .sql-box {
+            background: #1a1a1a;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .sql-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .sql-code {
+            background: #0a0a0a;
+            padding: 15px;
+            border-radius: 6px;
+            color: #4CAF50;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            margin: 0;
+        }
+
         @media (max-width: 768px) {
             .field-input, .field-item {
                 grid-template-columns: 1fr;
@@ -412,7 +440,12 @@
         <header>
             <h1>🗄️ Simulador de Base de Datos</h1>
             <p>Sistema de Gestión de Compras - Productos y Clientes</p>
-            <p style="font-size: 0.9em; margin-top: 10px; opacity: 0.9;">Módulo: Análisis y Diseño de Reportes</p>
+            <p style="font-size: 0.9em; margin-top: 10px; opacity: 0.9;">Centro Educativo Nuestra Sra. De la Altagracia</p>
+            <div id="studentInfoDisplay" style="margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; display: none;">
+                <p style="margin: 5px 0; font-size: 0.95em;"><strong>Estudiante:</strong> <span id="displayName"></span></p>
+                <p style="margin: 5px 0; font-size: 0.95em;"><strong>Curso:</strong> <span id="displayCourse"></span></p>
+                <p style="margin: 5px 0; font-size: 0.95em;"><strong>Fecha:</strong> <span id="displayDate"></span></p>
+            </div>
         </header>
 
         <div class="progress-bar">
@@ -428,6 +461,12 @@
         // Estado de la aplicación
         const appState = {
             currentStep: 0,
+            studentInfo: {
+                name: '',
+                course: '',
+                date: ''
+            },
+            infoCompleted: false,
             tables: {
                 productos: [],
                 clientes: [],
@@ -445,6 +484,7 @@
             {
                 title: "Diseñar Tabla PRODUCTOS",
                 description: "Crea la tabla Productos con todos sus campos requeridos",
+                points: 0.25,
                 requiredFields: [
                     { name: "ID_Producto", constraint: "primary" },
                     { name: "Código_Producto", constraint: "none" },
@@ -461,6 +501,7 @@
             {
                 title: "Diseñar Tabla CLIENTES",
                 description: "Crea la tabla Clientes con todos sus campos requeridos",
+                points: 0.25,
                 requiredFields: [
                     { name: "ID_Cliente", constraint: "primary" },
                     { name: "Código_Cliente", constraint: "none" },
@@ -477,6 +518,7 @@
             {
                 title: "Diseñar Tabla COMPRAS (Intermedia)",
                 description: "Crea la tabla intermedia Compras con claves foráneas",
+                points: 0.30,
                 requiredFields: [
                     { name: "ID_Compra", constraint: "primary" },
                     { name: "ID_Cliente", constraint: "foreign" },
@@ -491,12 +533,14 @@
             {
                 title: "Establecer Relaciones",
                 description: "Define las relaciones entre las tablas (uno a muchos)",
+                points: 0.30,
                 type: "relationship",
                 validate: () => true
             },
             {
                 title: "Insertar Productos",
                 description: "Agrega 2 productos de ejemplo",
+                points: 0.30,
                 type: "data",
                 tableName: "productos",
                 requiredCount: 2,
@@ -505,6 +549,7 @@
             {
                 title: "Insertar Clientes",
                 description: "Agrega 2 clientes de ejemplo",
+                points: 0.30,
                 type: "data",
                 tableName: "clientes",
                 requiredCount: 2,
@@ -513,6 +558,7 @@
             {
                 title: "Registrar Compras",
                 description: "Registra al menos 2 compras",
+                points: 0.30,
                 type: "data",
                 tableName: "compras",
                 requiredCount: 2,
@@ -521,13 +567,280 @@
             {
                 title: "Resumen Final",
                 description: "Revisa tu base de datos completada",
+                points: 0,
                 type: "summary",
                 validate: () => true
             }
         ];
 
+        // Generar PDF con resultados
+        async function generatePDF() {
+            const score = calculateScore();
+            const date = new Date(appState.studentInfo.date).toLocaleDateString('es-DO', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric'
+            });
+            const currentDateTime = new Date().toLocaleString('es-DO', {
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            // Crear contenido HTML para el PDF
+            const content = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 40px; }
+                        .header { text-align: center; border-bottom: 3px solid #c41e3a; padding-bottom: 20px; margin-bottom: 30px; }
+                        .header h1 { color: #c41e3a; margin: 0; font-size: 28px; }
+                        .header p { color: #666; margin: 5px 0; }
+                        .student-info { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 5px solid #c41e3a; }
+                        .student-info p { margin: 8px 0; font-size: 16px; }
+                        .student-info strong { color: #c41e3a; }
+                        .score-box { background: linear-gradient(135deg, #c41e3a 0%, #8b0000 100%); color: white; padding: 30px; border-radius: 10px; text-align: center; margin: 30px 0; }
+                        .score-box h2 { margin: 0; font-size: 48px; }
+                        .score-box p { margin: 10px 0 0 0; font-size: 18px; }
+                        .section { margin: 30px 0; }
+                        .section h3 { color: #c41e3a; border-bottom: 2px solid #c41e3a; padding-bottom: 10px; }
+                        .step-item { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
+                        .step-item .title { font-weight: bold; }
+                        .step-item .points { background: #4CAF50; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
+                        .data-section { margin: 20px 0; }
+                        .data-section h4 { color: #666; margin: 15px 0 10px 0; }
+                        .data-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+                        .data-table th { background: #c41e3a; color: white; padding: 10px; text-align: left; }
+                        .data-table td { padding: 8px; border-bottom: 1px solid #ddd; }
+                        .footer { margin-top: 50px; text-align: center; color: #666; font-size: 12px; border-top: 1px solid #ddd; padding-top: 20px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>🗄️ Simulador de Base de Datos</h1>
+                        <p>Sistema de Gestión de Compras - Productos y Clientes</p>
+                        <p>Centro Educativo Nuestra Sra. De la Altagracia</p>
+                        <p style="margin-top: 15px; font-weight: bold;">Generado: ${currentDateTime}</p>
+                    </div>
+
+                    <div class="student-info">
+                        <p><strong>Estudiante:</strong> ${appState.studentInfo.name}</p>
+                        <p><strong>Curso:</strong> ${appState.studentInfo.course}</p>
+                        <p><strong>Fecha de realización:</strong> ${date}</p>
+                    </div>
+
+                    <div class="score-box">
+                        <h2>⭐ ${score.current} / ${score.max}</h2>
+                        <p>Puntos Obtenidos</p>
+                    </div>
+
+                    <div class="section">
+                        <h3>📊 Desglose de Puntuación</h3>
+                        ${steps.map((step, index) => `
+                            <div class="step-item">
+                                <div>
+                                    <div class="title">${index + 1}. ${step.title}</div>
+                                    <div style="color: #666; font-size: 14px;">${step.description}</div>
+                                </div>
+                                <div class="points">${index <= appState.currentStep ? '✓ ' : ''}${step.points > 0 ? step.points.toFixed(2) + ' ptos' : 'Resumen'}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="section">
+                        <h3>📋 Estructura de Base de Datos Creada</h3>
+                        
+                        <div class="data-section">
+                            <h4>Tabla PRODUCTOS (${appState.tables.productos.length} campos)</h4>
+                            <table class="data-table">
+                                <tr><th>Campo</th><th>Tipo</th><th>Restricción</th></tr>
+                                ${appState.tables.productos.map(f => `
+                                    <tr>
+                                        <td>${f.name}</td>
+                                        <td>${f.type}</td>
+                                        <td>${f.constraint === 'primary' ? 'Clave Primaria' : f.constraint === 'foreign' ? 'Clave Foránea' : 'Ninguna'}</td>
+                                    </tr>
+                                `).join('')}
+                            </table>
+                        </div>
+
+                        <div class="data-section">
+                            <h4>Tabla CLIENTES (${appState.tables.clientes.length} campos)</h4>
+                            <table class="data-table">
+                                <tr><th>Campo</th><th>Tipo</th><th>Restricción</th></tr>
+                                ${appState.tables.clientes.map(f => `
+                                    <tr>
+                                        <td>${f.name}</td>
+                                        <td>${f.type}</td>
+                                        <td>${f.constraint === 'primary' ? 'Clave Primaria' : f.constraint === 'foreign' ? 'Clave Foránea' : 'Ninguna'}</td>
+                                    </tr>
+                                `).join('')}
+                            </table>
+                        </div>
+
+                        <div class="data-section">
+                            <h4>Tabla COMPRAS (${appState.tables.compras.length} campos)</h4>
+                            <table class="data-table">
+                                <tr><th>Campo</th><th>Tipo</th><th>Restricción</th></tr>
+                                ${appState.tables.compras.map(f => `
+                                    <tr>
+                                        <td>${f.name}</td>
+                                        <td>${f.type}</td>
+                                        <td>${f.constraint === 'primary' ? 'Clave Primaria' : f.constraint === 'foreign' ? 'Clave Foránea' : 'Ninguna'}</td>
+                                    </tr>
+                                `).join('')}
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>📊 Datos Registrados</h3>
+                        <p><strong>Productos:</strong> ${appState.dataEntries.productos.length} registros</p>
+                        <p><strong>Clientes:</strong> ${appState.dataEntries.clientes.length} registros</p>
+                        <p><strong>Compras:</strong> ${appState.dataEntries.compras.length} registros</p>
+                    </div>
+
+                    <div class="footer">
+                        <p>Documento generado automáticamente por el Simulador de Base de Datos</p>
+                        <p>Centro Educativo Nuestra Sra. De la Altagracia - Desarrollo y Administración de Aplicaciones Informáticas</p>
+                    </div>
+                </body>
+                </html>
+            `;
+
+            // Abrir en nueva ventana para imprimir como PDF
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(content);
+            printWindow.document.close();
+            
+            // Esperar a que cargue y luego abrir diálogo de impresión
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
+        }
+
+        // Calcular puntuación
+        function calculateScore() {
+            let totalScore = 0;
+            let maxScore = 2.0;
+            
+            steps.forEach((step, index) => {
+                if (index <= appState.currentStep) {
+                    totalScore += step.points;
+                }
+            });
+            
+            return { current: totalScore.toFixed(2), max: maxScore.toFixed(2) };
+        }
+
         // Inicializar aplicación
         function init() {
+            if (!appState.infoCompleted) {
+                showStudentInfoPanel();
+            } else {
+                renderSteps();
+                updateProgress();
+            }
+        }
+
+        // Mostrar panel de información del estudiante
+        function showStudentInfoPanel() {
+            const container = document.getElementById('stepsContainer');
+            container.innerHTML = `
+                <div style="max-width: 600px; margin: 0 auto;">
+                    <div style="background: #2a2a2a; border-radius: 15px; padding: 40px; box-shadow: 0 8px 20px rgba(0,0,0,0.3);">
+                        <h2 style="color: #c41e3a; text-align: center; margin-bottom: 10px; font-size: 2em;">📝 Información del Estudiante</h2>
+                        <p style="text-align: center; color: #ccc; margin-bottom: 30px;">Por favor completa los siguientes datos antes de comenzar</p>
+                        
+                        <div style="margin-bottom: 25px;">
+                            <label style="display: block; margin-bottom: 8px; color: #c41e3a; font-weight: bold; font-size: 1.1em;">
+                                Nombre Completo:
+                            </label>
+                            <input 
+                                type="text" 
+                                id="studentName" 
+                                placeholder="Ej: Juan Pérez García"
+                                style="width: 100%; padding: 15px; font-size: 1em; border: 2px solid #555; border-radius: 8px; background: #1a1a1a; color: #fff;"
+                                value="${appState.studentInfo.name}"
+                            >
+                        </div>
+
+                        <div style="margin-bottom: 25px;">
+                            <label style="display: block; margin-bottom: 8px; color: #c41e3a; font-weight: bold; font-size: 1.1em;">
+                                Curso:
+                            </label>
+                            <input 
+                                type="text" 
+                                id="studentCourse" 
+                                placeholder="Ej: 3ro Secundaria - Informática"
+                                style="width: 100%; padding: 15px; font-size: 1em; border: 2px solid #555; border-radius: 8px; background: #1a1a1a; color: #fff;"
+                                value="${appState.studentInfo.course}"
+                            >
+                        </div>
+
+                        <div style="margin-bottom: 30px;">
+                            <label style="display: block; margin-bottom: 8px; color: #c41e3a; font-weight: bold; font-size: 1.1em;">
+                                Fecha:
+                            </label>
+                            <input 
+                                type="date" 
+                                id="studentDate" 
+                                style="width: 100%; padding: 15px; font-size: 1em; border: 2px solid #555; border-radius: 8px; background: #1a1a1a; color: #fff;"
+                                value="${appState.studentInfo.date || new Date().toISOString().split('T')[0]}"
+                            >
+                        </div>
+
+                        <button 
+                            onclick="saveStudentInfo()" 
+                            style="width: 100%; padding: 15px; background: linear-gradient(135deg, #c41e3a 0%, #8b0000 100%); color: white; border: none; border-radius: 8px; font-size: 1.2em; font-weight: bold; cursor: pointer; transition: all 0.3s ease;"
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(196, 30, 58, 0.4)'"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+                        >
+                            Comenzar Actividad →
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Guardar información del estudiante
+        function saveStudentInfo() {
+            const name = document.getElementById('studentName').value.trim();
+            const course = document.getElementById('studentCourse').value.trim();
+            const date = document.getElementById('studentDate').value;
+
+            if (!name) {
+                alert('⚠️ Por favor ingresa tu nombre completo');
+                return;
+            }
+
+            if (!course) {
+                alert('⚠️ Por favor ingresa tu curso');
+                return;
+            }
+
+            if (!date) {
+                alert('⚠️ Por favor selecciona la fecha');
+                return;
+            }
+
+            appState.studentInfo = { name, course, date };
+            appState.infoCompleted = true;
+
+            // Mostrar información en el header
+            document.getElementById('displayName').textContent = name;
+            document.getElementById('displayCourse').textContent = course;
+            document.getElementById('displayDate').textContent = new Date(date).toLocaleDateString('es-DO', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            document.getElementById('studentInfoDisplay').style.display = 'block';
+
             renderSteps();
             updateProgress();
         }
@@ -549,8 +862,13 @@
                                 <p style="color: #ccc; margin-top: 5px;">${step.description}</p>
                             </div>
                         </div>
-                        <div class="step-status ${index < appState.currentStep ? 'status-completed' : index === appState.currentStep ? 'status-active' : 'status-pending'}">
-                            ${index < appState.currentStep ? '✓ Completado' : index === appState.currentStep ? 'En Progreso' : 'Pendiente'}
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div style="background: ${index < appState.currentStep ? '#4CAF50' : '#c41e3a'}; padding: 8px 16px; border-radius: 20px; font-weight: bold;">
+                                ${step.points > 0 ? step.points.toFixed(2) + ' ptos' : 'Resumen'}
+                            </div>
+                            <div class="step-status ${index < appState.currentStep ? 'status-completed' : index === appState.currentStep ? 'status-active' : 'status-pending'}">
+                                ${index < appState.currentStep ? '✓ Completado' : index === appState.currentStep ? 'En Progreso' : 'Pendiente'}
+                            </div>
                         </div>
                     </div>
                     <div id="stepContent${index}"></div>
@@ -629,6 +947,135 @@
             renderFieldsList(stepIndex, tableName);
         }
 
+        // Generar SQL de creación de tabla
+        function generateTableSQL(tableName) {
+            const fields = appState.tables[tableName];
+            if (fields.length === 0) return '';
+            
+            const tableNameUpper = tableName.toUpperCase();
+            let sql = `CREATE TABLE ${tableNameUpper} (\n`;
+            
+            const fieldDefinitions = fields.map(field => {
+                let def = `    ${field.name} `;
+                
+                // Para claves foráneas que referencian autonuméricos, usar LONG
+                if (field.constraint === 'foreign') {
+                    def += 'LONG';
+                }
+                // Mapeo de tipos de datos a SQL
+                else {
+                    switch(field.type) {
+                        case 'autonumerico':
+                            def += 'AUTOINCREMENT';
+                            break;
+                        case 'texto-corto':
+                            def += 'VARCHAR(255)';
+                            break;
+                        case 'texto-largo':
+                            def += 'LONGTEXT';
+                            break;
+                        case 'numero':
+                            def += 'DOUBLE';
+                            break;
+                        case 'moneda':
+                            def += 'CURRENCY';
+                            break;
+                        case 'fecha':
+                            def += 'DATE';
+                            break;
+                        case 'fecha-hora':
+                            def += 'DATETIME';
+                            break;
+                        case 'si-no':
+                            def += 'YESNO';
+                            break;
+                        case 'objeto-ole':
+                            def += 'OLEOBJECT';
+                            break;
+                        case 'hipervinculo':
+                            def += 'HYPERLINK';
+                            break;
+                        default:
+                            def += 'VARCHAR(255)';
+                    }
+                }
+                
+                // Agregar restricción de clave primaria
+                if (field.constraint === 'primary') {
+                    def += ' PRIMARY KEY';
+                }
+                
+                return def;
+            });
+            
+            sql += fieldDefinitions.join(',\n');
+            
+            // NO agregar claves foráneas en el script - el estudiante las creará manualmente
+            
+            sql += '\n);';
+            
+            return sql;
+        }
+
+        // Generar SQL INSERT para los datos
+        function generateInsertSQL(tableName) {
+            const data = appState.dataEntries[tableName];
+            if (data.length === 0) return '';
+            
+            const tableNameUpper = tableName.toUpperCase();
+            const tableFields = appState.tables[tableName];
+            
+            // Obtener el campo de clave primaria para excluirlo
+            const pkField = tableFields.find(f => f.constraint === 'primary');
+            
+            let sql = '';
+            
+            // Access requiere instrucciones INSERT separadas, una por registro
+            data.forEach((entry, index) => {
+                // Filtrar campos: excluir la clave primaria autonumérica
+                const fields = Object.keys(entry).filter(key => key !== pkField.name);
+                const values = fields.map(field => {
+                    const val = entry[field];
+                    // Si es número, no usar comillas
+                    if (typeof val === 'number') {
+                        return val;
+                    }
+                    // Si es texto, usar comillas simples y escapar comillas internas
+                    return `'${String(val).replace(/'/g, "''")}'`;
+                });
+                
+                sql += `INSERT INTO ${tableNameUpper} (${fields.join(', ')}) VALUES (${values.join(', ')});`;
+                
+                // Agregar salto de línea solo si no es el último
+                if (index < data.length - 1) {
+                    sql += '\n';
+                }
+            });
+            
+            return sql;
+        }
+
+        // Copiar SQL al portapapeles
+        function copySQL(sqlId) {
+            const sqlElement = document.getElementById(sqlId);
+            const textArea = document.createElement('textarea');
+            textArea.value = sqlElement.textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            // Feedback visual
+            const copyBtn = event.target;
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = '✓ Copiado!';
+            copyBtn.style.background = '#4CAF50';
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+                copyBtn.style.background = '';
+            }, 2000);
+        }
+
         // Actualizar campos disponibles
         function updateAvailableFields(stepIndex, step, tableName) {
             const select = document.getElementById(`fieldName${stepIndex}`);
@@ -648,9 +1095,29 @@
             
             // Actualizar cuadro amarillo
             if (pendingFields.length === 0) {
+                // Generar SQL
+                const sql = generateTableSQL(tableName);
+                
                 alertBox.innerHTML = `
                     <div class="alert success">
-                        ✅ <strong>¡Excelente!</strong> Has agregado todos los campos requeridos. Puedes continuar al siguiente paso.
+                        ✅ <strong>¡Tabla Completada!</strong> Todos los campos han sido agregados correctamente.
+                    </div>
+                    <div style="background: #1a1a1a; border: 2px solid #4CAF50; border-radius: 8px; padding: 20px; margin-top: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="color: #4CAF50; margin: 0;">📝 Script SQL para Access</h3>
+                            <button class="btn-add" onclick="copySQL('sql${stepIndex}')" style="background: #4CAF50;">
+                                📋 Copiar SQL
+                            </button>
+                        </div>
+                        <pre id="sql${stepIndex}" style="background: #0a0a0a; padding: 15px; border-radius: 6px; color: #4CAF50; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 0.9em; line-height: 1.6; margin: 0;">${sql}</pre>
+                        <div style="margin-top: 15px; padding: 12px; background: rgba(33, 150, 243, 0.1); border-left: 4px solid #2196F3; border-radius: 4px;">
+                            <p style="color: #2196F3; font-size: 0.9em; margin: 0;">
+                                <strong>ℹ️ Nota importante:</strong> Las claves foráneas (FK) se configuran automáticamente como tipo <strong>LONG</strong> (Número Entero Largo) para que sean compatibles con las claves primarias autonuméricas.
+                            </p>
+                        </div>
+                        <p style="margin-top: 15px; color: #ccc; font-size: 0.9em;">
+                            💡 <strong>Instrucciones:</strong> Copia este script SQL y pégalo en la vista SQL de Microsoft Access para crear la tabla automáticamente.
+                        </p>
                     </div>
                 `;
             } else {
@@ -809,6 +1276,19 @@
         // Renderizar paso de relaciones
         function renderRelationshipStep(container) {
             container.innerHTML = `
+                <div style="background: #ff9800; color: #000; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #f57c00;">
+                    <h3 style="margin-bottom: 10px; color: #000;">⚠️ IMPORTANTE - Antes de Establecer Relaciones en Access:</h3>
+                    <ol style="margin: 10px 0 10px 20px; line-height: 2;">
+                        <li><strong>Cierra TODAS las tablas</strong> (Productos, Clientes y Compras)</li>
+                        <li>No deben estar abiertas en ninguna vista (ni Diseño, ni Hoja de datos)</li>
+                        <li>Solo entonces ve a: <strong>Herramientas de base de datos → Relaciones</strong></li>
+                        <li>Haz clic en <strong>"Mostrar tabla"</strong> y agrega las 3 tablas</li>
+                    </ol>
+                    <p style="margin-top: 10px; font-size: 0.95em;">
+                        💡 <strong>Tip:</strong> Si una tabla no aparece en "Mostrar tabla", es porque está abierta. Ciérrala primero.
+                    </p>
+                </div>
+
                 <div class="relationship-diagram">
                     <h3 style="margin-bottom: 30px; font-size: 1.5em;">Diagrama de Relaciones</h3>
                     
@@ -858,12 +1338,24 @@
                     </div>
 
                     <div style="margin-top: 30px; padding: 20px; background: #2a2a2a; border-radius: 8px;">
-                        <h4 style="color: #c41e3a; margin-bottom: 15px;">📋 Explicación de las Relaciones:</h4>
-                        <ul style="text-align: left; line-height: 2;">
-                            <li><strong>Clientes → Compras:</strong> Un cliente puede realizar muchas compras (relación 1:N)</li>
-                            <li><strong>Productos → Compras:</strong> Un producto puede estar en muchas compras (relación 1:N)</li>
-                            <li><strong>Tabla Intermedia:</strong> COMPRAS conecta Clientes y Productos mediante claves foráneas</li>
-                        </ul>
+                        <h4 style="color: #c41e3a; margin-bottom: 15px;">📋 Pasos para Establecer las Relaciones en Access:</h4>
+                        <ol style="text-align: left; line-height: 2; margin-left: 20px;">
+                            <li><strong>Cierra todas las tablas</strong> abiertas</li>
+                            <li>Ve a: <strong>Herramientas de base de datos → Relaciones</strong></li>
+                            <li>Haz clic en <strong>"Mostrar tabla"</strong></li>
+                            <li>Agrega las 3 tablas: PRODUCTOS, CLIENTES y COMPRAS</li>
+                            <li><strong>Primera relación:</strong> Arrastra <strong>ID_Cliente</strong> de CLIENTES hacia <strong>ID_Cliente</strong> en COMPRAS</li>
+                            <li>Marca: ✅ Exigir integridad referencial</li>
+                            <li><strong>Segunda relación:</strong> Arrastra <strong>ID_Producto</strong> de PRODUCTOS hacia <strong>ID_Producto</strong> en COMPRAS</li>
+                            <li>Marca: ✅ Exigir integridad referencial</li>
+                            <li>Guarda las relaciones (Ctrl + S)</li>
+                        </ol>
+                    </div>
+
+                    <div style="margin-top: 20px; padding: 15px; background: rgba(33, 150, 243, 0.1); border-left: 4px solid #2196F3; border-radius: 4px;">
+                        <p style="color: #2196F3; margin: 0;">
+                            <strong>ℹ️ Nota:</strong> Las claves foráneas (ID_Cliente e ID_Producto) en la tabla COMPRAS deben ser tipo <strong>Número - Entero largo</strong> para que las relaciones funcionen correctamente.
+                        </p>
                     </div>
                 </div>
                 <button class="btn-next" onclick="nextStep()">Continuar al Siguiente Paso →</button>
@@ -874,6 +1366,7 @@
         function renderDataStep(container, step) {
             const tableName = step.tableName;
             const tableFields = appState.tables[tableName];
+            const completed = appState.dataEntries[tableName].length >= step.requiredCount;
 
             container.innerHTML = `
                 <div class="data-entry">
@@ -896,9 +1389,55 @@
 
                     <div id="dataList${tableName}"></div>
                 </div>
-                <div class="alert ${appState.dataEntries[tableName].length >= step.requiredCount ? 'success' : ''}">
+                <div class="alert ${completed ? 'success' : ''}" id="progressAlert${tableName}">
                     <strong>Progreso:</strong> ${appState.dataEntries[tableName].length} de ${step.requiredCount} registros completados
                 </div>
+                ${completed ? `
+                    <div style="background: #1a1a1a; border: 2px solid #4CAF50; border-radius: 8px; padding: 20px; margin-top: 15px;" id="insertSQLBox${tableName}">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="color: #4CAF50; margin: 0;">📝 Scripts INSERT para Access</h3>
+                        </div>
+                        
+                        <div style="background: rgba(255, 152, 0, 0.1); border-left: 4px solid #ff9800; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                            <p style="color: #ff9800; font-size: 0.9em; margin: 0;"><strong>⚠️ IMPORTANTE:</strong> Access NO permite ejecutar múltiples INSERT a la vez. Debes copiar y ejecutar cada INSERT por separado, uno a la vez.</p>
+                        </div>
+
+                        ${(() => {
+                            const data = appState.dataEntries[tableName];
+                            return data.map((entry, index) => {
+                                const fields = Object.keys(entry);
+                                const values = Object.values(entry).map(val => {
+                                    if (typeof val === 'number') return val;
+                                    return `'${String(val).replace(/'/g, "''")}'`;
+                                });
+                                const sql = `INSERT INTO ${tableName.toUpperCase()} (${fields.join(', ')}) VALUES (${values.join(', ')});`;
+                                
+                                return `
+                                    <div style="margin-bottom: 20px; background: #2a2a2a; padding: 15px; border-radius: 6px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                            <h4 style="color: #c41e3a; margin: 0;">Registro ${index + 1}</h4>
+                                            <button class="btn-add" onclick="copySQL('insertSQL_${tableName}_${index}')" style="background: #c41e3a; padding: 6px 12px; font-size: 0.85em;">
+                                                📋 Copiar
+                                            </button>
+                                        </div>
+                                        <pre id="insertSQL_${tableName}_${index}" style="background: #0a0a0a; padding: 12px; border-radius: 4px; color: #4CAF50; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 0.85em; margin: 0; white-space: pre-wrap; word-wrap: break-word;">${sql}</pre>
+                                    </div>
+                                `;
+                            }).join('');
+                        })()}
+
+                        <div style="margin-top: 15px; padding: 15px; background: rgba(33, 150, 243, 0.1); border-left: 4px solid #2196F3; border-radius: 4px;">
+                            <p style="color: #2196F3; font-size: 0.9em; margin: 0 0 10px 0;"><strong>📋 Instrucciones (ejecuta cada INSERT por separado):</strong></p>
+                            <ol style="color: #2196F3; font-size: 0.85em; margin: 0; padding-left: 20px; line-height: 1.8;">
+                                <li>Haz clic en <strong>"Copiar"</strong> del primer registro</li>
+                                <li>En Access: <strong>Crear → Diseño de consulta → Cerrar "Mostrar tabla"</strong></li>
+                                <li>Haz clic en <strong>Vista SQL</strong></li>
+                                <li>Pega el código y haz clic en <strong>Ejecutar</strong> (⚠️ rojo)</li>
+                                <li><strong>Repite</strong> el proceso para cada registro siguiente</li>
+                            </ol>
+                        </div>
+                    </div>
+                ` : ''}
                 <button class="btn-next" onclick="nextStep()">Continuar al Siguiente Paso →</button>
             `;
 
@@ -1092,10 +1631,50 @@
             renderDataList(tableName);
             
             // Actualizar contador
-            const alert = document.querySelector('.alert');
-            if (alert) {
-                alert.className = `alert ${appState.dataEntries[tableName].length >= requiredCount ? 'success' : ''}`;
-                alert.innerHTML = `<strong>Progreso:</strong> ${appState.dataEntries[tableName].length} de ${requiredCount} registros completados`;
+            const progressAlert = document.getElementById(`progressAlert${tableName}`);
+            const completed = appState.dataEntries[tableName].length >= requiredCount;
+            
+            if (progressAlert) {
+                progressAlert.className = `alert ${completed ? 'success' : ''}`;
+                progressAlert.innerHTML = `<strong>Progreso:</strong> ${appState.dataEntries[tableName].length} de ${requiredCount} registros completados`;
+            }
+            
+            // Si se completó el mínimo requerido y no existe el cuadro SQL, agregarlo
+            if (completed) {
+                const existingBox = document.getElementById(`insertSQLBox${tableName}`);
+                if (!existingBox) {
+                    const progressAlert = document.getElementById(`progressAlert${tableName}`);
+                    const insertHTML = `
+                        <div style="background: #1a1a1a; border: 2px solid #4CAF50; border-radius: 8px; padding: 20px; margin-top: 15px;" id="insertSQLBox${tableName}">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <h3 style="color: #4CAF50; margin: 0;">📝 Scripts INSERT para Access</h3>
+                            </div>
+                            
+                            <div style="background: rgba(255, 152, 0, 0.1); border-left: 4px solid #ff9800; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                                <p style="color: #ff9800; font-size: 0.9em; margin: 0 0 8px 0;"><strong>⚠️ IMPORTANTE:</strong> Access NO permite ejecutar múltiples INSERT a la vez. Debes copiar y ejecutar cada INSERT por separado, uno a la vez.</p>
+                                <p style="color: #ff9800; font-size: 0.85em; margin: 0;"><strong>ℹ️ Nota:</strong> El campo ID (clave primaria autonumérica) NO se incluye en el INSERT porque Access lo genera automáticamente.</p>
+                            </div>
+
+                            <div id="insertsList${tableName}"></div>
+
+                            <div style="margin-top: 15px; padding: 15px; background: rgba(33, 150, 243, 0.1); border-left: 4px solid #2196F3; border-radius: 4px;">
+                                <p style="color: #2196F3; font-size: 0.9em; margin: 0 0 10px 0;"><strong>📋 Instrucciones (ejecuta cada INSERT por separado):</strong></p>
+                                <ol style="color: #2196F3; font-size: 0.85em; margin: 0; padding-left: 20px; line-height: 1.8;">
+                                    <li>Haz clic en <strong>"Copiar"</strong> del primer registro</li>
+                                    <li>En Access: <strong>Crear → Diseño de consulta → Cerrar "Mostrar tabla"</strong></li>
+                                    <li>Haz clic en <strong>Vista SQL</strong></li>
+                                    <li>Pega el código y haz clic en <strong>Ejecutar</strong> (⚠️ rojo)</li>
+                                    <li><strong>Repite</strong> el proceso para cada registro siguiente</li>
+                                </ol>
+                            </div>
+                        </div>
+                    `;
+                    progressAlert.insertAdjacentHTML('afterend', insertHTML);
+                    updateInsertsList(tableName);
+                } else {
+                    // Si ya existe, actualizar la lista
+                    updateInsertsList(tableName);
+                }
             }
         }
 
@@ -1127,6 +1706,41 @@
             `;
         }
 
+        // Actualizar lista de INSERTs
+        function updateInsertsList(tableName) {
+            const insertsList = document.getElementById(`insertsList${tableName}`);
+            if (!insertsList) return;
+            
+            const data = appState.dataEntries[tableName];
+            const tableFields = appState.tables[tableName];
+            
+            // Obtener el campo de clave primaria para excluirlo
+            const pkField = tableFields.find(f => f.constraint === 'primary');
+            
+            insertsList.innerHTML = data.map((entry, index) => {
+                // Filtrar campos: excluir la clave primaria autonumérica
+                const fields = Object.keys(entry).filter(key => key !== pkField.name);
+                const values = fields.map(field => {
+                    const val = entry[field];
+                    if (typeof val === 'number') return val;
+                    return `'${String(val).replace(/'/g, "''")}'`;
+                });
+                const sql = `INSERT INTO ${tableName.toUpperCase()} (${fields.join(', ')}) VALUES (${values.join(', ')});`;
+                
+                return `
+                    <div style="margin-bottom: 20px; background: #2a2a2a; padding: 15px; border-radius: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h4 style="color: #c41e3a; margin: 0;">Registro ${index + 1}</h4>
+                            <button class="btn-add" onclick="copySQL('insertSQL_${tableName}_${index}')" style="background: #c41e3a; padding: 6px 12px; font-size: 0.85em;">
+                                📋 Copiar
+                            </button>
+                        </div>
+                        <pre id="insertSQL_${tableName}_${index}" style="background: #0a0a0a; padding: 12px; border-radius: 4px; color: #4CAF50; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 0.85em; margin: 0; white-space: pre-wrap; word-wrap: break-word;">${sql}</pre>
+                    </div>
+                `;
+            }).join('');
+        }
+
         // Eliminar registro de datos
         function removeDataEntry(tableName, index) {
             if (confirm('¿Estás seguro de eliminar este registro?')) {
@@ -1135,21 +1749,64 @@
                 
                 // Actualizar contador
                 const step = steps.find(s => s.tableName === tableName);
-                const alert = document.querySelector('.alert');
-                if (alert && step) {
-                    alert.className = `alert ${appState.dataEntries[tableName].length >= step.requiredCount ? 'success' : ''}`;
-                    alert.innerHTML = `<strong>Progreso:</strong> ${appState.dataEntries[tableName].length} de ${step.requiredCount} registros completados`;
+                const progressAlert = document.getElementById(`progressAlert${tableName}`);
+                const completed = appState.dataEntries[tableName].length >= step.requiredCount;
+                
+                if (progressAlert) {
+                    progressAlert.className = `alert ${completed ? 'success' : ''}`;
+                    progressAlert.innerHTML = `<strong>Progreso:</strong> ${appState.dataEntries[tableName].length} de ${step.requiredCount} registros completados`;
+                }
+                
+                // Actualizar o eliminar el cuadro INSERT
+                const insertBox = document.getElementById(`insertSQLBox${tableName}`);
+                if (completed && insertBox) {
+                    // Actualizar la lista
+                    updateInsertsList(tableName);
+                } else if (!completed && insertBox) {
+                    // Eliminar el cuadro si ya no se cumple el mínimo
+                    insertBox.remove();
                 }
             }
         }
 
         // Renderizar resumen final
         function renderSummaryStep(container) {
+            const score = calculateScore();
+            const percentage = (score.current / score.max) * 100;
+            
             container.innerHTML = `
                 <div class="summary-section">
                     <h3 style="color: #c41e3a; font-size: 1.8em; margin-bottom: 25px; text-align: center;">
                         🎉 ¡Base de Datos Completada!
                     </h3>
+                    
+                    <!-- Panel de Puntuación -->
+                    <div style="background: linear-gradient(135deg, #c41e3a 0%, #8b0000 100%); border-radius: 15px; padding: 40px; text-align: center; margin-bottom: 30px; box-shadow: 0 8px 20px rgba(196, 30, 58, 0.3);">
+                        <h2 style="color: #fff; margin: 0 0 10px 0; font-size: 3em;">⭐ ${score.current} / ${score.max}</h2>
+                        <p style="color: #fff; font-size: 1.5em; margin: 0;">Puntos Obtenidos</p>
+                        <div style="margin: 20px 0; padding: 15px; background: rgba(255,255,255,0.2); border-radius: 10px;">
+                            <p style="color: #fff; font-size: 1.1em; margin: 0;">Porcentaje: ${percentage.toFixed(1)}%</p>
+                        </div>
+                        ${percentage >= 90 ? '<p style="color: #fff; font-size: 1.2em; margin: 15px 0 0 0;">🏆 ¡Excelente trabajo!</p>' :
+                          percentage >= 70 ? '<p style="color: #fff; font-size: 1.2em; margin: 15px 0 0 0;">👏 ¡Muy bien!</p>' :
+                          '<p style="color: #fff; font-size: 1.2em; margin: 15px 0 0 0;">💪 ¡Buen esfuerzo!</p>'}
+                    </div>
+
+                    <!-- Desglose de Puntos -->
+                    <div style="background: #2a2a2a; border-radius: 10px; padding: 25px; margin-bottom: 30px;">
+                        <h3 style="color: #c41e3a; margin-bottom: 20px;">📊 Desglose de Puntuación</h3>
+                        ${steps.map((step, index) => `
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; margin: 8px 0; background: ${index < appState.currentStep ? 'rgba(76, 175, 80, 0.1)' : '#1a1a1a'}; border-radius: 6px; border-left: 4px solid ${index < appState.currentStep ? '#4CAF50' : '#555'};">
+                                <div>
+                                    <strong>${index + 1}. ${step.title}</strong>
+                                    <div style="color: #999; font-size: 0.9em;">${step.description}</div>
+                                </div>
+                                <div style="background: ${index < appState.currentStep ? '#4CAF50' : '#555'}; color: white; padding: 6px 15px; border-radius: 20px; font-weight: bold;">
+                                    ${index < appState.currentStep ? '✓ ' : ''}${step.points > 0 ? step.points.toFixed(2) + ' ptos' : 'Resumen'}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
                     
                     <div class="summary-grid">
                         <div class="summary-card">
@@ -1218,6 +1875,16 @@
                         </div>
                     </div>
 
+                    <!-- Botón de Enviar y Generar PDF -->
+                    <div style="text-align: center; margin-top: 40px;">
+                        <button onclick="generatePDF()" style="background: linear-gradient(135deg, #4CAF50 0%, #2e7d32 100%); color: white; border: none; padding: 20px 50px; font-size: 1.3em; font-weight: bold; border-radius: 10px; cursor: pointer; box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4); transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                            📄 Enviar Actividad y Descargar PDF
+                        </button>
+                        <p style="margin-top: 15px; color: #999; font-size: 0.9em;">
+                            Genera un PDF con tus resultados completos para entregar a tu profesor
+                        </p>
+                    </div>
+
                     <div class="alert success" style="margin-top: 25px; text-align: center; font-size: 1.1em;">
                         ✅ Has completado exitosamente el diseño e implementación de la base de datos del sistema de compras
                     </div>
@@ -1272,8 +1939,15 @@
         function updateProgress() {
             const progress = ((appState.currentStep + 1) / steps.length) * 100;
             const progressBar = document.getElementById('progressBar');
+            const score = calculateScore();
+            
             progressBar.style.width = progress + '%';
-            progressBar.textContent = Math.round(progress) + '%';
+            progressBar.innerHTML = `
+                <div style="display: flex; justify-content: space-between; padding: 0 15px; width: 100%;">
+                    <span>${Math.round(progress)}% Completado</span>
+                    <span>⭐ ${score.current}/${score.max} puntos</span>
+                </div>
+            `;
         }
 
         // Iniciar aplicación
